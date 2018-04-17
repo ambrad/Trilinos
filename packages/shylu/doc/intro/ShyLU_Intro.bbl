@@ -1,9 +1,9 @@
 \begin{thebibliography}{1}
 
-% Sample citation
-%\bibitem{cal_amm}
-%Name
-%\newblock {Title}.
-%\newblock Institution, Year.
+\bibitem{bradley2016hybrid}
+Andrew~M Bradley.
+\newblock A hybrid multithreaded direct sparse triangular solver.
+\newblock In {\em 2016 Proceedings of the Seventh SIAM Workshop on
+  Combinatorial Scientific Computing}, pages 13--22. SIAM, 2016.
 
 \end{thebibliography}

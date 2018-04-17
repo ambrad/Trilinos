@@ -1,14 +1,89 @@
-
 \chapter{HTS}
 \label{C:HTS}
 
-\todo{NDE: TODO Andrew can you work on this section?}
-
 \section{Introduction}\label{S:HTS:Introduction}
-% Brief explanation about the package, motivation,
-% types of problems it is designed to solve
+The \emph{hybrid triangular solver} HTS uses OpenMP to solve triangular systems of equations.
+It can be used on conventional CPU and many-core computers such as the Intel Knights Landing.
+It automatically combines two methods of parallelization, level scheduling and recursive blocking,
+based on the structure of the triangular matrix.
+See \cite{bradley2016hybrid} for algorithm details. Quoting that article:
+
+``HTS focuses on the following computational setting. A sequence of systems $T_i
+x_i = b_i$ must be solved. The sequence cannot be batched because $b_j$ depends
+on at least one $b_i$ for $i < j$. Hence substantial parallelism derived from
+batching is not available. $T_i$ is either the same as $T_j$, or the two share
+the same nonzero pattern. Quite likely, exactly the same matrix $T$ is used for
+at least some equations in sequence---a few to a few tens---and the same nonzero
+pattern is used for many equations in sequence---hundreds or more.
+
+``An example of this setting is the solution of a nonlinear equation over a mesh
+with fixed topology, by Newton's method, with an iterative method used for the
+linear equation at each nonlinear iteration. The mesh induces a fixed nonzero
+pattern for all the $T_i$, if pivoting is not used in the construction of
+$T$. Each nonlinear iteration induces particular numerical entries in $T_i$. An
+iteration in time above the nonlinear iteration at each time step may further
+increase the number of triangular systems having the same nonzero pattern.
+
+``This setting permits a solver to use {\it symbolic analysis} and {\it numerical}
+phases to construct and fill data structures to use in the {\it solution}
+phase. $\ldots$ The time
+to construct data structures in the first and second phases is amortized over
+subsequent solutions of equations. $\ldots$ The intention is
+to perform the symbolic analysis phase very occasionally relative to the
+numerical phase, and the numerical phase somewhat occasionally relative to the
+solution phase.''
 
 \section{Interface}\label{S:HTS:Interface}
+HTS is optionally used within Trilinos by Ifpack2's LocalSparseTriangularSolver,
+which in turn is used by some of Ifpack2's incomplete factorizations.
+It can also be used as a standalone solver.
+
+\subsection{Mathematical forms of linear algebra problems}
+HTS is used to solve problems having the following forms:
+\begin{enumerate}
+\item[1.] Set $c \gets b/r$ if scaling vector $r$ is available; else $b$.
+\item[2a.] Solve $T x = c$ for triangular matrix $T$,
+\item[2b.] or solve $P^T T x = c$ for permutation matrix $P$,
+\item[2c.] or solve $T Q^T x = c$ for permutation matrix $Q$,
+\item[2d.] or solve $P^T T Q^T x = c$.
+\end{enumerate}
+$T$ is a lower or upper triangular matrix in compressed row storage (CRS)
+format, $P$ and $Q$ are permutations, $b$ is in dense format and can have
+multiple right hand sides, and $x$ is in dense format.
+In dense format, row is the fast index.
+
+In terms of Matlab's sparse LU factorization, this solver can be used as
+follows. In Matlab, an efficient way to handle a sparse LU factorization is as
+follows:
+\begin{verbatim}
+    % Factorize.
+    [L U p q R] = lu(A, 'vector');
+    r = full(diag(R));
+    % Solve.
+    b = b./r;
+    b = b(p);
+    x = U \ (L \ b);
+    x(q) = x;
+\end{verbatim}
+For this factorization, use HTS as follows:
+\begin{verbatim}
+    typedef HTS<int, int, double> ihts;
+    Impl* Limpl = ihts::preprocess(L, nrhs, nthreads, p,    NULL, r);
+    Impl* Uimpl = ihts::preprocess(U, nrhs, nthreads, NULL, q);
+    ihts::solve_omp(Limpl, xb, nrhs); // xb is the rhs b on input
+    ihts::solve_omp(Uimpl, xb, nrhs); // xb is the solution x on output
+    ihts::delete_Impl(Limpl);
+    ihts::delete_Impl(Uimpl);
+\end{verbatim}
+In {\tt HTS<Int, Size, Sclr>},
+{\tt Int} is the index type. {\tt Size} is the array pointer type in the CRS/CCS data
+structure; it is appropriate for quantities that have magnitude
+O(nnz). {\tt Sclr} is the scalar type, including
+complex. {\tt hts::ScalarTraits<Sclr>::Real} is the real type. {\tt Int} must be
+signed. {\tt Size} may be unsigned.
+
+\subsection{Practical usage}
+
 % Example code with explanation of the solver's interface
 % e.g. Assume problem setup, demonstrate call to 
 % symbolic, numeric, and solve steps

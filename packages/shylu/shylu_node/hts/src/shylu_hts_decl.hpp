@@ -84,14 +84,14 @@ struct HTS {
    *
    *   Solve problems of the form
    *     \code
-   *     c <- r ? b : b./r
+   *     c <- r ? b./r : b
    *     T x = c
    *     P' T x = c
    *     T Q' x = c
    *     P' T Q' x = c
    *     \endcode
-   * where T is a lower or upper triangular matrix in compressed row storage (CRS)
-   * format, and P and Q are permutations, b is in dense format and can be
+   * where T is a lower or upper triangular matrix in compressed row storage
+   * (CRS) format, P and Q are permutations, b is in dense format and can have
    * multiple r.h.s, and x is in dense format.
    *   In terms of Matlab's sparse lu, this solver can be used as follows. In
    * Matlab, probably the most efficient way to handle a sparse LU factorization
